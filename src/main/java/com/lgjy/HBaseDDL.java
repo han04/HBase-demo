@@ -2,8 +2,8 @@ package com.lgjy;
 
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 
@@ -60,11 +60,60 @@ public class HBaseDDL {
 
     }
 
+    /**
+     * 创建表格
+     * @param namespace
+     * @param tableName
+     * @param columnFamilies
+     */
+    public static void createTable(String namespace, String tableName, String... columnFamilies) throws IOException {
+        if(columnFamilies.length == 0){
+            System.out.println("至少有一个列族~");
+            return;
+        }
+
+        if(isTableExists(namespace,tableName)){
+            System.out.println("表格已存在~");
+            return;
+        }
+
+        Admin admin = connection.getAdmin();
+        //调用方法创建表格
+        //1 创建table Descriptor的builder
+        TableDescriptorBuilder tableDescriptorBuilder = TableDescriptorBuilder.newBuilder(TableName
+                .valueOf(namespace,tableName));
+        //2.添加参数
+        for(String columnFamily : columnFamilies){
+            //3.创建列族描述 ColumnFamilyDescriptor
+            ColumnFamilyDescriptorBuilder columnFamilyDescriptorBuilder =
+                    ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(columnFamily));
+            //4.当前列族添加参数
+            columnFamilyDescriptorBuilder.setMaxVersions(5);
+
+            //5.创建 添加完参数的列族描述
+            tableDescriptorBuilder.setColumnFamily(columnFamilyDescriptorBuilder.build());
+        }
+        //创建 对应的表格描述
+        try {
+            admin.createTable(tableDescriptorBuilder.build());
+            System.out.println("success");
+        } catch (IOException e) {
+            System.out.println("table already exists");
+            throw new RuntimeException(e);
+        }
+        //关闭admin
+        admin.close();
+
+    }
+
     public static void main(String[] args) throws IOException {
         //测试创建namespace
-        createNamespace("test_ns");
+        //createNamespace("test_ns");
         //测试table是否存在
-        System.out.println(isTableExists("bigdata12", "student"));
+        //System.out.println(isTableExists("bigdata12", "student"));
+        //测试创建表格
+        createTable("test_ns","student33","info1","msg");
+
         System.out.println("Others");
 
         //关闭HBase连接
