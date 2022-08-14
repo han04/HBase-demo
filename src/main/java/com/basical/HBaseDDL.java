@@ -148,6 +148,12 @@ public class HBaseDDL {
         admin.close();
     }
 
+    /**
+     * 删除表格
+     * @param namespace
+     * @param tableName
+     * @return true表示删除成功
+     */
     public static boolean deleteTable(String namespace, String tableName) throws IOException {
         if (!isTableExists(namespace, tableName)) {
             System.out.println("this table does exist~");
