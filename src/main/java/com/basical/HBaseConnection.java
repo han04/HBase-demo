@@ -1,12 +1,9 @@
-package com.lgjy;
+package com.basical;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.AsyncConnection;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
 
 public class HBaseConnection {

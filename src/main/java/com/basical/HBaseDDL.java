@@ -1,4 +1,4 @@
-package com.lgjy;
+package com.basical;
 
 import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.TableName;
@@ -104,6 +104,69 @@ public class HBaseDDL {
         //关闭admin
         admin.close();
 
+    }
+
+    /**
+     *  修改表格中一个columnFamily的version
+     * @param namespace
+     * @param tableName
+     * @param columnFamily
+     * @param version
+     */
+    public static void modifyTable(String namespace, String tableName, String columnFamily, int version) throws IOException {
+        //判断该table是否存在
+        if (!isTableExists(namespace, tableName)) {
+            System.out.println("Table doesn't exist~~");
+            return;
+        }
+        //1.获取admin
+        Admin admin = connection.getAdmin();
+        try {
+            //2.调用方法修改表格
+            //2.0 获取之前的TableDescriptor
+            TableDescriptor descriptor = admin.getDescriptor(TableName.valueOf(namespace, tableName));
+
+            //2.1 创建一个TableDescriptorBuilder
+            //如果使用填写TableName的方法，相当于创建一个新的Table descriptor builder没有之前的信息
+            //所以使用TableDescriptorBuilder来调用方法
+            TableDescriptorBuilder tableDescriptorBuilder = TableDescriptorBuilder.newBuilder(descriptor);
+            //2.2对应的builder进行数据更改
+            ColumnFamilyDescriptor columnFamily1 = descriptor.getColumnFamily(Bytes.toBytes(columnFamily));
+
+            //创建ColumnFamilyDescriptorBuilder
+            //填写旧的
+            ColumnFamilyDescriptorBuilder columnFamilyDescriptorBuilder =
+                    ColumnFamilyDescriptorBuilder.newBuilder(columnFamily1);
+            //修改对应的版本
+            columnFamilyDescriptorBuilder.setMaxVersions(version);
+
+            tableDescriptorBuilder.modifyColumnFamily(columnFamilyDescriptorBuilder.build());
+            admin.modifyTable(tableDescriptorBuilder.build());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        admin.close();
+    }
+
+    public static boolean deleteTable(String namespace, String tableName) throws IOException {
+        if (!isTableExists(namespace, tableName)) {
+            System.out.println("this table does exist~");
+            return false;
+        }
+
+        Admin admin = connection.getAdmin();
+        try {
+            TableName tableName1 = TableName.valueOf(namespace, tableName);
+
+            admin.disableTable(tableName1);
+            admin.deleteTable(tableName1);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        admin.close();
+        return true;
     }
 
     public static void main(String[] args) throws IOException {
