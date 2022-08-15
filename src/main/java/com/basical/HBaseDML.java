@@ -2,8 +2,12 @@ package com.basical;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.CompareOperator;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.ColumnValueFilter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
@@ -116,6 +120,95 @@ public class HBaseDML {
         }
         table.close();
 
+    }
+
+    /**
+     * 过滤扫描
+     * @param namespace
+     * @param tableName
+     * @param startRow
+     * @param stopRow
+     * @param columnFamily
+     * @param columnName
+     * @param value
+     * @throws IOException
+     */
+    public static void filterScan(String namespace, String tableName, String startRow, String stopRow,String columnFamily,String columnName,String value) throws IOException {
+        Table table = connection.getTable(TableName.valueOf(namespace, tableName));
+        //2.创建 scan对象
+        Scan scan = new Scan();
+        //此时会扫描整张表
+
+        //添加起止row
+        scan.withStartRow(Bytes.toBytes(startRow));
+        scan.withStopRow(Bytes.toBytes(stopRow));
+        //可以加第二个boolean参数 控制是否包含该row
+
+        //可以添加多个Filter
+        FilterList filterList = new FilterList();
+
+        // 创建Filter
+        //（1）结果只保留当前列数据
+        ColumnValueFilter columnValueFilter = new ColumnValueFilter(Bytes.toBytes(columnFamily),
+                                                                    Bytes.toBytes(columnName),
+                                                                CompareOperator.EQUAL, Bytes.toBytes(value));
+        //（1）结果保留整行数据
+        SingleColumnValueFilter singleColumnValueFilter = new SingleColumnValueFilter(Bytes.toBytes(columnFamily),
+                                                                                Bytes.toBytes(columnName),
+                                                                CompareOperator.EQUAL, Bytes.toBytes(value));
+
+        filterList.addFilter(columnValueFilter);
+        //filterList.addFilter(singleColumnValueFilter);
+        scan.setFilter(filterList);
+
+        try {
+            //读取多行数据 获得scanner
+            ResultScanner scanner = table.getScanner(scan);
+
+            //result记录一行数据 cell数组
+            //ResultScanner记录多行数据 result数组
+            for (Result result : scanner) {
+                Cell[] cells = result.rawCells();
+
+                for (Cell cell : cells) {
+                    System.out.print(new String(CellUtil.cloneRow(cell)) +"-"+ new String(CellUtil.cloneFamily(cell)) +"-"+
+                            new String(CellUtil.cloneQualifier(cell)) +"-"+ new String(CellUtil.cloneValue(cell))+"\t");
+                }
+                System.out.println("");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        table.close();
+
+    }
+
+    /**
+     * 删除一行中的一列
+     * @param namespace
+     * @param tableName
+     * @param rowKey
+     * @param columnFamily
+     * @param columnName
+     */
+    public static void deleteColumn(String namespace, String tableName, String rowKey, String columnFamily, String columnName) throws IOException {
+
+        Table table = connection.getTable(TableName.valueOf(namespace, tableName));
+        // 创建delete对象
+        Delete delete = new Delete(Bytes.toBytes(rowKey));
+
+        //删除一个版本数据
+        delete.addColumn(Bytes.toBytes(columnFamily),Bytes.toBytes(columnName));
+        //删除所有版本数据
+        delete.addColumns(Bytes.toBytes(columnFamily),Bytes.toBytes(columnName));
+
+        try {
+            table.delete(delete);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        table.close();
     }
 
     public static void main(String[] args) throws IOException {
