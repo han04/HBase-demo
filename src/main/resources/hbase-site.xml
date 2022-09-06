@@ -7,4 +7,5 @@
         <description>The directory shared by RegionServers.
         </description>
     </property>
+
 </configuration>
